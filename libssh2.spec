@@ -1,6 +1,6 @@
 Name:           libssh2
 Version:        1.4.2
-Release:        1%{?dist}.1
+Release:        2%{?dist}.1
 Summary:        A library implementing the SSH2 protocol
 
 Group:          System Environment/Libraries
@@ -9,6 +9,7 @@ URL:            http://www.libssh2.org/
 Source0:        http://libssh2.org/download/libssh2-%{version}.tar.gz
 Patch0:         libssh2-1.4.2-tests-mansyntax.patch
 Patch1:         libssh2-1.4.2-fips.patch
+Patch2:         libssh2-1.4.2-CVE-2016-0787.patch
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  openssh-server
@@ -49,6 +50,9 @@ developing applications that use %{name}.
 
 # Make sure libssh2 works in FIPS mode...
 %patch1 -p1
+
+# use secrects of the appropriate length in Diffie-Hellman (CVE-2016-0787)
+%patch2 -p1
 
 # make sure things are UTF-8...
 for i in ChangeLog NEWS ; do
@@ -113,7 +117,10 @@ rm -rf %{buildroot}
 %{_libdir}/pkgconfig/libssh2.pc
 
 %changelog
-* Fri May 31 2013 Kamil Dudka <kdudka@redhat.com> - 1.4.2-1.el6_6.1
+* Fri Feb 19 2016 Kamil Dudka <kdudka@redhat.com> - 1.4.2-2.el6_7.1
+- use secrects of the appropriate length in Diffie-Hellman (CVE-2016-0787)
+
+* Fri May 31 2013 Kamil Dudka <kdudka@redhat.com> - 1.4.2-2
 - fix basic functionality of libssh2 in FIPS mode (#968575)
 
 * Fri Jul 20 2012 Kamil Dudka <kdudka@redhat.com> - 1.4.2-1
