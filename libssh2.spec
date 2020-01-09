@@ -1,6 +1,6 @@
 Name:           libssh2
 Version:        1.4.2
-Release:        2%{?dist}.1
+Release:        3%{?dist}.1
 Summary:        A library implementing the SSH2 protocol
 
 Group:          System Environment/Libraries
@@ -15,6 +15,19 @@ BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 BuildRequires:  openssh-server
 BuildRequires:  openssl-devel
 BuildRequires:  zlib-devel
+
+# fix integer overflow in transport read resulting in out of bounds write (CVE-2019-3855)
+Patch201:   0001-libssh2-1.8.0-CVE-2019-3855.patch
+
+# fix integer overflow in keyboard interactive handling resulting in out of bounds write (CVE-2019-3856)
+Patch202:   0002-libssh2-1.8.0-CVE-2019-3856.patch
+
+# fix integer overflow in SSH packet processing channel resulting in out of bounds write (CVE-2019-3857)
+Patch203:   0003-libssh2-1.8.0-CVE-2019-3857.patch
+
+# fix integer overflow in keyboard interactive handling that allows out-of-bounds writes (CVE-2019-3863)
+Patch209:   0009-libssh2-1.8.0-CVE-2019-3863.patch
+
 
 %description
 libssh2 is a library implementing the SSH2 protocol as defined by
@@ -53,6 +66,12 @@ developing applications that use %{name}.
 
 # use secrects of the appropriate length in Diffie-Hellman (CVE-2016-0787)
 %patch2 -p1
+
+# rhel-6.10.z patches
+%patch201 -p1
+%patch202 -p1
+%patch203 -p1
+%patch209 -p1
 
 # make sure things are UTF-8...
 for i in ChangeLog NEWS ; do
@@ -117,7 +136,13 @@ rm -rf %{buildroot}
 %{_libdir}/pkgconfig/libssh2.pc
 
 %changelog
-* Fri Feb 19 2016 Kamil Dudka <kdudka@redhat.com> - 1.4.2-2.el6_7.1
+* Tue Mar 19 2019 Kamil Dudka <kdudka@redhat.com> - 1.4.2-3.el6_10.1
+- fix integer overflow in keyboard interactive handling that allows out-of-bounds writes (CVE-2019-3863)
+- fix integer overflow in SSH packet processing channel resulting in out of bounds write (CVE-2019-3857)
+- fix integer overflow in keyboard interactive handling resulting in out of bounds write (CVE-2019-3856)
+- fix integer overflow in transport read resulting in out of bounds write (CVE-2019-3855)
+
+* Fri Feb 19 2016 Kamil Dudka <kdudka@redhat.com> - 1.4.2-3
 - use secrects of the appropriate length in Diffie-Hellman (CVE-2016-0787)
 
 * Fri May 31 2013 Kamil Dudka <kdudka@redhat.com> - 1.4.2-2
