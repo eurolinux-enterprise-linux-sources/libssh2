@@ -1,0 +1,18 @@
+libssh2 1.2.2
+
+This release includes the following changes:
+
+ o Support for the "aes128-ctr", "aes192-ctr", "aes256-ctr" ciphers
+ o Support for the "arcfour128" cipher
+
+This release includes the following bugfixes:
+
+ o Fix crash when server sends an invalid SSH_MSG_IGNORE message
+
+This release would not have looked like this without help, code, reports and
+advice from friends like these:
+
+ Simon Josefsson, Bob Alexander
+ 
+
+        Thanks! (and sorry if I forgot to mention someone)
