@@ -1,4 +1,4 @@
-/* Copyright (C) 2009 Simon Josefsson
+/* Copyright (C) 2009, 2010 Simon Josefsson
  * Copyright (C) 2006, 2007 The Written Word, Inc.  All rights reserved.
  *
  * Author: Simon Josefsson
@@ -76,6 +76,7 @@
 # define LIBSSH2_AES_CTR 1
 # define LIBSSH2_AES 1
 #else
+# define LIBSSH2_AES_CTR 0
 # define LIBSSH2_AES 0
 #endif
 
@@ -103,19 +104,19 @@
 # define LIBSSH2_3DES 1
 #endif
 
-#define libssh2_random(buf, len) RAND_bytes ((buf), (len))
+#define _libssh2_random(buf, len) RAND_bytes ((buf), (len))
 
-#define libssh2_sha1_ctx SHA_CTX
-#define libssh2_sha1_init(ctx) SHA1_Init(ctx)
-#define libssh2_sha1_update(ctx, data, len) SHA1_Update(&(ctx), data, len)
-#define libssh2_sha1_final(ctx, out) SHA1_Final(out, &(ctx))
-#define libssh2_sha1(message, len, out) SHA1(message, len, out)
+#define libssh2_sha1_ctx EVP_MD_CTX
+#define libssh2_sha1_init(ctx) EVP_DigestInit(ctx, EVP_get_digestbyname("sha1"))
+#define libssh2_sha1_update(ctx, data, len) EVP_DigestUpdate(&(ctx), data, len)
+#define libssh2_sha1_final(ctx, out) EVP_DigestFinal(&(ctx), out, NULL)
+void libssh2_sha1(const unsigned char *message, unsigned long len, unsigned char *out);
 
-#define libssh2_md5_ctx MD5_CTX
-#define libssh2_md5_init(ctx) MD5_Init(ctx)
-#define libssh2_md5_update(ctx, data, len) MD5_Update(&(ctx), data, len)
-#define libssh2_md5_final(ctx, out) MD5_Final(out, &(ctx))
-#define libssh2_md5(message, len, out) MD5(message, len, out)
+#define libssh2_md5_ctx EVP_MD_CTX
+#define libssh2_md5_init(ctx) EVP_DigestInit(ctx, EVP_get_digestbyname("md5"))
+#define libssh2_md5_update(ctx, data, len) EVP_DigestUpdate(&(ctx), data, len)
+#define libssh2_md5_final(ctx, out) EVP_DigestFinal(&(ctx), out, NULL)
+void libssh2_md5(const unsigned char *message, unsigned long len, unsigned char *out);
 
 #define libssh2_hmac_ctx HMAC_CTX
 #define libssh2_hmac_sha1_init(ctx, key, keylen) \
@@ -129,65 +130,15 @@
 #define libssh2_hmac_final(ctx, data) HMAC_Final(&(ctx), data, NULL)
 #define libssh2_hmac_cleanup(ctx) HMAC_cleanup(ctx)
 
-#define libssh2_crypto_init()
+#define libssh2_crypto_init() OpenSSL_add_all_algorithms()
+#define libssh2_crypto_exit()
 
 #define libssh2_rsa_ctx RSA
-
-int _libssh2_rsa_new(libssh2_rsa_ctx ** rsa,
-                     const unsigned char *edata,
-                     unsigned long elen,
-                     const unsigned char *ndata,
-                     unsigned long nlen,
-                     const unsigned char *ddata,
-                     unsigned long dlen,
-                     const unsigned char *pdata,
-                     unsigned long plen,
-                     const unsigned char *qdata,
-                     unsigned long qlen,
-                     const unsigned char *e1data,
-                     unsigned long e1len,
-                     const unsigned char *e2data,
-                     unsigned long e2len,
-                     const unsigned char *coeffdata, unsigned long coefflen);
-int _libssh2_rsa_new_private(libssh2_rsa_ctx ** rsa,
-                             LIBSSH2_SESSION * session,
-                             const char *filename,
-                             unsigned const char *passphrase);
-int _libssh2_rsa_sha1_verify(libssh2_rsa_ctx * rsa,
-                             const unsigned char *sig,
-                             unsigned long sig_len,
-                             const unsigned char *m, unsigned long m_len);
-int _libssh2_rsa_sha1_sign(LIBSSH2_SESSION * session,
-                           libssh2_rsa_ctx * rsactx,
-                           const unsigned char *hash,
-                           unsigned long hash_len,
-                           unsigned char **signature,
-                           unsigned long *signature_len);
 
 #define _libssh2_rsa_free(rsactx) RSA_free(rsactx)
 
 #define libssh2_dsa_ctx DSA
 
-int _libssh2_dsa_new(libssh2_dsa_ctx ** dsa,
-                     const unsigned char *pdata,
-                     unsigned long plen,
-                     const unsigned char *qdata,
-                     unsigned long qlen,
-                     const unsigned char *gdata,
-                     unsigned long glen,
-                     const unsigned char *ydata,
-                     unsigned long ylen,
-                     const unsigned char *x, unsigned long x_len);
-int _libssh2_dsa_new_private(libssh2_dsa_ctx ** dsa,
-                             LIBSSH2_SESSION * session,
-                             const char *filename,
-                             unsigned const char *passphrase);
-int _libssh2_dsa_sha1_verify(libssh2_dsa_ctx * dsactx,
-                             const unsigned char *sig,
-                             const unsigned char *m, unsigned long m_len);
-int _libssh2_dsa_sha1_sign(libssh2_dsa_ctx * dsactx,
-                           const unsigned char *hash,
-                           unsigned long hash_len, unsigned char *sig);
 
 #define _libssh2_dsa_free(dsactx) DSA_free(dsactx)
 
@@ -204,15 +155,6 @@ int _libssh2_dsa_sha1_sign(libssh2_dsa_ctx * dsactx,
 #define _libssh2_cipher_arcfour EVP_rc4
 #define _libssh2_cipher_cast5 EVP_cast5_cbc
 #define _libssh2_cipher_3des EVP_des_ede3_cbc
-
-int _libssh2_cipher_init(_libssh2_cipher_ctx * h,
-                         _libssh2_cipher_type(algo),
-                         unsigned char *iv,
-                         unsigned char *secret, int encrypt);
-
-int _libssh2_cipher_crypt(_libssh2_cipher_ctx * ctx,
-                          _libssh2_cipher_type(algo),
-                          int encrypt, unsigned char *block);
 
 #define _libssh2_cipher_dtor(ctx) EVP_CIPHER_CTX_cleanup(ctx)
 
@@ -233,3 +175,4 @@ int _libssh2_cipher_crypt(_libssh2_cipher_ctx * ctx,
 const EVP_CIPHER *_libssh2_EVP_aes_128_ctr(void);
 const EVP_CIPHER *_libssh2_EVP_aes_192_ctr(void);
 const EVP_CIPHER *_libssh2_EVP_aes_256_ctr(void);
+

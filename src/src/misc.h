@@ -1,6 +1,6 @@
 #ifndef __LIBSSH2_MISC_H
 #define __LIBSSH2_MISC_H
-/* Copyright (c) 2009 by Daniel Stenberg
+/* Copyright (c) 2009-2011 by Daniel Stenberg
  *
  * All rights reserved.
  *
@@ -49,6 +49,8 @@ struct list_node {
     struct list_head *head;
 };
 
+int _libssh2_error(LIBSSH2_SESSION* session, int errcode, const char* errmsg);
+
 void _libssh2_list_init(struct list_head *head);
 
 /* add a node last in the list */
@@ -69,4 +71,24 @@ void _libssh2_list_remove(struct list_node *entry);
 
 size_t _libssh2_base64_encode(struct _LIBSSH2_SESSION *session,
                               const char *inp, size_t insize, char **outptr);
+
+unsigned int _libssh2_ntohu32(const unsigned char *buf);
+libssh2_uint64_t _libssh2_ntohu64(const unsigned char *buf);
+void _libssh2_htonu32(unsigned char *buf, uint32_t val);
+void _libssh2_store_u32(unsigned char **buf, uint32_t value);
+void _libssh2_store_str(unsigned char **buf, const char *str, size_t len);
+
+#if defined(LIBSSH2_WIN32) && !defined(__MINGW32__) && !defined(__CYGWIN__)
+/* provide a private one */
+#undef HAVE_GETTIMEOFDAY
+int __cdecl _libssh2_gettimeofday(struct timeval *tp, void *tzp);
+#define HAVE_LIBSSH2_GETTIMEOFDAY
+#define LIBSSH2_GETTIMEOFDAY_WIN32 /* enable the win32 implementation */
+#else
+#ifdef HAVE_GETTIMEOFDAY
+#define _libssh2_gettimeofday(x,y) gettimeofday(x,y)
+#define HAVE_LIBSSH2_GETTIMEOFDAY
+#endif
+#endif
+
 #endif /* _LIBSSH2_MISC_H */

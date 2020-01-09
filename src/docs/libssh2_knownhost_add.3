@@ -1,10 +1,11 @@
 
-.\" Copyright (c) 2009 by Daniel Stenberg
+.\" Copyright (c) 2009, 2010 by Daniel Stenberg
 .\"
 .TH libssh2_knownhost_add 3 "28 May 2009" "libssh2 1.2" "libssh2 manual"
 .SH NAME
 libssh2_knownhost_add - add a known host
 .SH SYNOPSIS
+.nf
 #include <libssh2.h>
 
 int libssh2_knownhost_add(LIBSSH2_KNOWNHOSTS *hosts,
@@ -13,6 +14,11 @@ int libssh2_knownhost_add(LIBSSH2_KNOWNHOSTS *hosts,
                           int typemask,
                           struct libssh2_knownhost **store);
 .SH DESCRIPTION
+We discourage use of this function as of libssh2 1.2.5. Instead we strongly
+urge users to use \fIlibssh2_knownhost_addc(3)\fP instead, which as a more
+complete API. \fIlibssh2_knownhost_add(3)\fP is subject for removal in a
+future release.
+
 Adds a known host to the collection of known hosts identified by the 'hosts'
 handle.
 
@@ -51,8 +57,10 @@ this pointer.
 Returns a regular libssh2 error code, where negative values are error codes
 and 0 indicates success.
 .SH AVAILABILITY
-Added in libssh2 1.2
+Added in libssh2 1.2, deprecated since libssh2 1.2.5. Use
+\fIlibssh2_knownhost_addc(3)\fP instead!
 .SH SEE ALSO
 .BR libssh2_knownhost_init(3)
 .BR libssh2_knownhost_free(3)
 .BR libssh2_knownhost_check(3)
+.BR libssh2_knownhost_addc(3)

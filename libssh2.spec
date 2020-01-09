@@ -1,18 +1,13 @@
 Name:           libssh2
-Version:        1.2.2
-Release:        11%{?dist}
+Version:        1.4.2
+Release:        1%{?dist}
 Summary:        A library implementing the SSH2 protocol
 
 Group:          System Environment/Libraries
 License:        BSD
 URL:            http://www.libssh2.org/
 Source0:        http://libssh2.org/download/libssh2-%{version}.tar.gz
-Patch0:         libssh2-1.2.2-dsa.patch
-Patch1:         libssh2-1.2.2-warnings.patch
-Patch2:         libssh2-bz741919.patch
-Patch3:         libssh2-bz801428.patch
-Patch4:         libssh2-bz804145.patch
-Patch5:         libssh2-bz826511.patch
+Patch0:         libssh2-1.4.2-tests-mansyntax.patch
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:  openssh-server
@@ -50,17 +45,6 @@ developing applications that use %{name}.
 %prep
 %setup -q
 %patch0 -p1
-%patch1 -p1
-%patch2 -p1
-
-# avoid a crash of curl when downloading large files using SFTP (#801428)
-%patch3 -p1
-
-# transport_send: finish in-progress key exchange before sending data (#804145)
-%patch4 -p1
-
-# do not return LIBSSH2_ERROR_EAGAIN in blocking mode (#826511)
-%patch5 -p1
 
 # make sure things are UTF-8...
 for i in ChangeLog NEWS ; do
@@ -86,13 +70,12 @@ make install DESTDIR=%{buildroot} INSTALL="install -p"
 find %{buildroot} -name '*.la' -exec rm -f {} +
 
 # clean things up a bit for packaging
-( cd example && make clean )
-rm -rf example/simple/.deps
+make -C example clean
+rm -rf example/.deps
 find example/ -type f '(' -name '*.am' -o -name '*.in' ')' -exec rm -v {} +
 
-# avoid multilib conflict
-mv -v example/Makefile example/Makefile.%{_arch}
-mv -v example/simple/Makefile example/simple/Makefile.%{_arch}
+# avoid multilib conflict on libssh2-devel
+mv -v example example.%{_arch}
 
 %check
 export LD_LIBRARY_PATH=%{buildroot}%{_libdir}
@@ -108,21 +91,27 @@ rm -rf %{buildroot}
 %files
 %defattr(-,root,root,-)
 %doc AUTHORS ChangeLog COPYING README NEWS
-%{_libdir}/*.so.*
+%{_libdir}/libssh2.so.1
+%{_libdir}/libssh2.so.1.*
 
 %files docs
 %defattr(-,root,root,-)
-%doc COPYING HACKING example/
-%{_mandir}/man?/*
+%doc COPYING HACKING example.%{_arch}/
+%{_mandir}/man3/libssh2_*.3*
 
 %files devel
 %defattr(-,root,root,-)
 %doc COPYING
-%{_includedir}/*
-%{_libdir}/*.so
-%{_libdir}/pkgconfig/*.pc
+%{_includedir}/libssh2.h
+%{_includedir}/libssh2_publickey.h
+%{_includedir}/libssh2_sftp.h
+%{_libdir}/libssh2.so
+%{_libdir}/pkgconfig/libssh2.pc
 
 %changelog
+* Fri Jul 20 2012 Kamil Dudka <kdudka@redhat.com> - 1.4.2-1
+- rebase to libssh2-1.4.2 (#745420, #749873, #804150, #806862)
+
 * Wed Jun 20 2012 Kamil Dudka <kdudka@redhat.com> - 1.2.2-11
 - do not return LIBSSH2_ERROR_EAGAIN in blocking mode (#826511)
 

@@ -1,5 +1,3 @@
-.\" $Id: libssh2_session_free.3,v 1.5 2009/03/16 23:25:14 bagder Exp $
-.\"
 .TH libssh2_session_free 3 "1 Jun 2007" "libssh2 0.15" "libssh2 manual"
 .SH NAME
 libssh2_session_free - frees resources associated with a session instance
@@ -9,7 +7,7 @@ libssh2_session_free - frees resources associated with a session instance
 int 
 libssh2_session_free(LIBSSH2_SESSION *session);
 .SH DESCRIPTION
-Frees resources associated with a session instance. Typically called after
+Frees all resources associated with a session instance. Typically called after
 .BR libssh2_session_disconnect_ex(3)
 .SH RETURN VALUE
 Return 0 on success or negative on failure.  It returns

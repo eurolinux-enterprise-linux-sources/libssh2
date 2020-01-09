@@ -344,8 +344,8 @@ int
 _libssh2_rsa_sha1_sign(LIBSSH2_SESSION * session,
                        libssh2_dsa_ctx * rsactx,
                        const unsigned char *hash,
-                       unsigned long hash_len,
-                       unsigned char **signature, unsigned long *signature_len)
+                       size_t hash_len,
+                       unsigned char **signature, size_t *signature_len)
 {
     gcry_sexp_t sig_sexp;
     gcry_sexp_t data;
@@ -424,61 +424,54 @@ _libssh2_dsa_sha1_sign(libssh2_dsa_ctx * dsactx,
         return -1;
     }
 
+    memset(sig, 0, 40);
+
 /* Extract R. */
 
     data = gcry_sexp_find_token(sig_sexp, "r", 0);
-    if (!data) {
-        ret = -1;
-        goto out;
-    }
+    if (!data)
+        goto err;
 
     tmp = gcry_sexp_nth_data(data, 1, &size);
-    if (!tmp) {
-        ret = -1;
-        goto out;
-    }
+    if (!tmp)
+        goto err;
 
     if (tmp[0] == '\0') {
         tmp++;
         size--;
     }
 
-    if (size != 20) {
-        ret = -1;
-        goto out;
-    }
+    if (size < 1 || size > 20)
+        goto err;
 
-    memcpy(sig, tmp, 20);
+    memcpy(sig + (20 - size), tmp, size);
 
     gcry_sexp_release(data);
 
 /* Extract S. */
 
     data = gcry_sexp_find_token(sig_sexp, "s", 0);
-    if (!data) {
-        ret = -1;
-        goto out;
-    }
+    if (!data)
+        goto err;
 
     tmp = gcry_sexp_nth_data(data, 1, &size);
-    if (!tmp) {
-        ret = -1;
-        goto out;
-    }
+    if (!tmp)
+        goto err;
 
     if (tmp[0] == '\0') {
         tmp++;
         size--;
     }
 
-    if (size != 20) {
-        ret = -1;
-        goto out;
-    }
+    if (size < 1 || size > 20)
+        goto err;
 
-    memcpy(sig + 20, tmp, 20);
+    memcpy(sig + 20 + (20 - size), tmp, size);
+    goto out;
 
-    ret = 0;
+  err:
+    ret = -1;
+
   out:
     if (sig_sexp) {
         gcry_sexp_release(sig_sexp);
@@ -544,11 +537,11 @@ _libssh2_cipher_init(_libssh2_cipher_ctx * h,
 
     if (mode != GCRY_CIPHER_MODE_STREAM) {
         int blklen = gcry_cipher_get_algo_blklen(cipher);
-	if (mode == GCRY_CIPHER_MODE_CTR)
-	  ret = gcry_cipher_setctr(*h, iv, blklen);
-	else
-	  ret = gcry_cipher_setiv(*h, iv, blklen);
-	if (ret) {
+        if (mode == GCRY_CIPHER_MODE_CTR)
+            ret = gcry_cipher_setctr(*h, iv, blklen);
+        else
+            ret = gcry_cipher_setiv(*h, iv, blklen);
+        if (ret) {
             gcry_cipher_close(*h);
             return -1;
         }
@@ -579,4 +572,22 @@ _libssh2_cipher_crypt(_libssh2_cipher_ctx * ctx,
     return ret;
 }
 
+int
+_libssh2_pub_priv_keyfile(LIBSSH2_SESSION *session,
+                          unsigned char **method,
+                          size_t *method_len,
+                          unsigned char **pubkeydata,
+                          size_t *pubkeydata_len,
+                          const char *privatekey,
+                          const char *passphrase)
+{
+    return _libssh2_error(session, LIBSSH2_ERROR_FILE,
+                         "Unable to extract public key from private key file: "
+                         "Method unimplemented in libgcrypt backend");
+}
+
+void _libssh2_init_aes_ctr(void)
+{
+    /* no implementation */
+}
 #endif /* LIBSSH2_LIBGCRYPT */

@@ -1,8 +1,8 @@
 # AC_PREREQ(2.57)
-AC_INIT(libssh2, [-], libssh2-devel@lists.sourceforge.net)
+AC_INIT(libssh2, [-], libssh2-devel@cool.haxx.se)
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_SRCDIR([src])
-AC_CONFIG_HEADER([src/libssh2_config.h])
+AM_CONFIG_HEADER([src/libssh2_config.h example/libssh2_config.h])
 AM_MAINTAINER_MODE
 
 dnl SED is needed by some of the tools
@@ -15,12 +15,14 @@ if test "x$SED" = "xsed-was-not-found-by-configure"; then
 fi
 
 dnl figure out the libssh2 version
-VERSION=`$SED -ne 's/^#define LIBSSH2_VERSION *"\(.*\)"/\1/p' ${srcdir}/include/libssh2.h`
-AM_INIT_AUTOMAKE(libssh2,$VERSION)
+LIBSSH2VER=`$SED -ne 's/^#define LIBSSH2_VERSION *"\(.*\)"/\1/p' ${srcdir}/include/libssh2.h`
+AM_INIT_AUTOMAKE
 AC_MSG_CHECKING([libssh2 version])
-AC_MSG_RESULT($VERSION)
+AC_MSG_RESULT($LIBSSH2VER)
 
-AB_VERSION=$VERSION
+AC_SUBST(LIBSSH2VER)
+
+AB_VERSION=$LIBSSH2VER
 
 AB_INIT
 
@@ -30,7 +32,7 @@ AB_INIT
 AC_CANONICAL_HOST
 case "$host" in
     *-mingw*)
-    CFLAGS="$CFLAGS -DLIBSSH2_WIN32 -DWINSOCK_VERSION=0x0200"
+    CFLAGS="$CFLAGS -DLIBSSH2_WIN32"
     LIBS="$LIBS -lws2_32"
     ;;
 	*-cygwin)
@@ -40,6 +42,9 @@ case "$host" in
 	CFLAGS="$CFLAGS -DLIBSSH2_DARWIN"
 	;;
     *hpux*)
+    ;;
+    *osf*)
+    CFLAGS="$CFLAGS -D_POSIX_PII_SOCKET"
     ;;
     *)
     ;;
@@ -91,12 +96,16 @@ AC_ARG_WITH(libz,
 # Look for OpenSSL (default)
 if test "$use_openssl" != "no" && test "$use_libgcrypt" != "yes"; then
   AC_LIB_HAVE_LINKFLAGS([ssl], [crypto], [#include <openssl/ssl.h>])
+  LIBSREQUIRED=libssl,libcrypto
 fi
 
 # Look for libgcrypt
 if test "$ac_cv_libssl" != "yes" && test "$use_libgcrypt" != "no"; then
   AC_LIB_HAVE_LINKFLAGS([gcrypt], [], [#include <gcrypt.h>])
+  LIBSREQUIRED=libgcrypt
 fi
+
+AC_SUBST(LIBSREQUIRED)
 
 if test "$ac_cv_libssl" != "yes" && test "$ac_cv_libgcrypt" != "yes"; then
   AC_MSG_ERROR([cannot find OpenSSL or Libgcrypt,
@@ -107,6 +116,14 @@ if test "$ac_cv_libgcrypt" = "yes"; then
   AC_DEFINE(LIBSSH2_LIBGCRYPT, 1, [Use libgcrypt])
 fi
 AM_CONDITIONAL(LIBGCRYPT, test "$ac_cv_libgcrypt" = "yes")
+
+# Not all OpenSSL have AES-CTR functions.
+if test "$ac_cv_libssl" = "yes"; then
+  save_LDFLAGS="$LDFLAGS"
+  LDFLAGS="$LDFLAGS $LIBSSL"
+  AC_CHECK_FUNCS(EVP_aes_128_ctr)
+  LDFLAGS="$save_LDFLAGS"
+fi
 
 # Look for Libz
 if test "$use_libz" != "no"; then
@@ -144,12 +161,12 @@ AC_MSG_CHECKING([whether to enable pedantic and debug compiler options])
 AC_ARG_ENABLE(debug,
 AC_HELP_STRING([--enable-debug],[Enable pedantic and debug options])
 AC_HELP_STRING([--disable-debug],[Disable debug options]),
-[ case "$enableval" in
+[ case "$enable_debug" in
   no)
        AC_MSG_RESULT(no)
        ;;
   *)   AC_MSG_RESULT(yes)
-
+    enable_debug=yes
     CPPFLAGS="$CPPFLAGS -DLIBSSH2DEBUG"
     CFLAGS="$CFLAGS -g"
 
@@ -159,6 +176,7 @@ AC_HELP_STRING([--disable-debug],[Disable debug options]),
        ;;
   esac
  ],
+       enable_debug=no
        AC_MSG_RESULT(no)
 )
 
@@ -201,11 +219,29 @@ AC_HELP_STRING([--disable-hidden-symbols],[Leave all symbols with default visibi
        AC_MSG_RESULT(no)
 )
 
+# Build example applications?
+AC_MSG_CHECKING([whether to build example applications])
+AC_ARG_ENABLE([examples-build],
+AC_HELP_STRING([--enable-examples-build], [Build example applications (this is the default)])
+AC_HELP_STRING([--disable-examples-build], [Do not build example applications]),
+[case "$enableval" in
+  no | false)
+    build_examples='no'
+    ;;
+  *)
+    build_examples='yes'
+    ;;
+esac], [build_examples='yes'])
+AC_MSG_RESULT($build_examples)
+AM_CONDITIONAL([BUILD_EXAMPLES], [test "x$build_examples" != "xno"])
+
 # Checks for header files.
 # AC_HEADER_STDC
 AC_CHECK_HEADERS([errno.h fcntl.h stdio.h stdlib.h unistd.h sys/uio.h])
 AC_CHECK_HEADERS([sys/select.h sys/socket.h sys/ioctl.h sys/time.h])
 AC_CHECK_HEADERS([arpa/inet.h netinet/in.h])
+AC_CHECK_HEADERS([sys/un.h], [have_sys_un_h=yes], [have_sys_un_h=no])
+AM_CONDITIONAL([HAVE_SYS_UN_H], test "x$have_sys_un_h" = xyes)
 
 case $host in
   *-*-cygwin* | *-*-cegcc*)
@@ -216,7 +252,25 @@ case $host in
     ;;
 esac
 
-AC_CHECK_FUNCS(poll gettimeofday select strtoll)
+case $host in
+  *darwin*|*interix*)
+    dnl poll() does not work on these platforms
+    dnl Interix: "does provide poll(), but the implementing developer must
+    dnl have been in a bad mood, because poll() only works on the /proc
+    dnl filesystem here"
+    dnl Mac OS X's poll has funny behaviors, like:
+    dnl not being able to do poll on no fildescriptors (10.3?)
+    dnl not being able to poll on some files (like anything in /dev)
+    dnl not having reliable timeout support
+    dnl inconsistent return of POLLHUP where other implementations give POLLIN
+    AC_MSG_NOTICE([poll use is disabled on this platform])
+    ;;
+  *)
+    AC_CHECK_FUNCS(poll)
+    ;;
+esac
+
+AC_CHECK_FUNCS(gettimeofday select strtoll)
 
 dnl Check for select() into ws2_32 for Msys/Mingw
 if test "$ac_cv_func_select" != "yes"; then
@@ -252,7 +306,21 @@ AC_CONFIG_FILES([Makefile
                  src/Makefile
                  tests/Makefile
                  example/Makefile
-                 example/simple/Makefile
                  docs/Makefile
                  libssh2.pc])
 AC_OUTPUT
+
+AC_MSG_NOTICE([summary of build options:
+
+  version:          ${LIBSSH2VER}
+  Host type:        ${host}
+  Install prefix:   ${prefix}
+  Compiler:         ${CC}
+  Compiler flags:   ${CFLAGS}
+  Library types:    Shared=${enable_shared}, Static=${enable_static}
+  Crypto library:   openssl: ${ac_cv_libssl:-no} (AES-CTR: ${ac_cv_func_EVP_aes_128_ctr:-N/A}) libgcrypt: ${ac_cv_libgcrypt:-no}
+  Debug build:      $enable_debug
+  Build examples:   $build_examples
+  Path to sshd:     $ac_cv_path_SSHD (only for self-tests)
+  libz compression: $ac_cv_libz
+])

@@ -37,6 +37,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+@BUILD_EXAMPLES_TRUE@am__append_1 = example
 DIST_COMMON = README $(am__configure_deps) $(include_HEADERS) \
 	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/Makefile.inc $(srcdir)/libssh2.pc.in \
@@ -56,7 +57,8 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno configure.status.lineno
 mkinstalldirs = $(install_sh) -d
-CONFIG_HEADER = $(top_builddir)/src/libssh2_config.h
+CONFIG_HEADER = $(top_builddir)/src/libssh2_config.h \
+	$(top_builddir)/example/libssh2_config.h
 CONFIG_CLEAN_FILES = libssh2.pc
 SOURCES =
 DIST_SOURCES =
@@ -80,7 +82,7 @@ includeHEADERS_INSTALL = $(INSTALL_HEADER)
 HEADERS = $(include_HEADERS)
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = $(SUBDIRS)
+DIST_SUBDIRS = src tests docs example
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -103,6 +105,8 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
+BUILD_EXAMPLES_FALSE = @BUILD_EXAMPLES_FALSE@
+BUILD_EXAMPLES_TRUE = @BUILD_EXAMPLES_TRUE@
 CC = @CC@
 CCDEPMODE = @CCDEPMODE@
 CFLAGS = @CFLAGS@
@@ -124,6 +128,8 @@ GREP = @GREP@
 HAVE_LIBGCRYPT = @HAVE_LIBGCRYPT@
 HAVE_LIBSSL = @HAVE_LIBSSL@
 HAVE_LIBZ = @HAVE_LIBZ@
+HAVE_SYS_UN_H_FALSE = @HAVE_SYS_UN_H_FALSE@
+HAVE_SYS_UN_H_TRUE = @HAVE_SYS_UN_H_TRUE@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
 INSTALL_SCRIPT = @INSTALL_SCRIPT@
@@ -136,6 +142,8 @@ LIBGCRYPT_PREFIX = @LIBGCRYPT_PREFIX@
 LIBGCRYPT_TRUE = @LIBGCRYPT_TRUE@
 LIBOBJS = @LIBOBJS@
 LIBS = @LIBS@
+LIBSREQUIRED = @LIBSREQUIRED@
+LIBSSH2VER = @LIBSSH2VER@
 LIBSSL = @LIBSSL@
 LIBSSL_PREFIX = @LIBSSL_PREFIX@
 LIBTOOL = @LIBTOOL@
@@ -151,6 +159,7 @@ MAINT = @MAINT@
 MAINTAINER_MODE_FALSE = @MAINTAINER_MODE_FALSE@
 MAINTAINER_MODE_TRUE = @MAINTAINER_MODE_TRUE@
 MAKEINFO = @MAKEINFO@
+MANIFEST_TOOL = @MANIFEST_TOOL@
 NM = @NM@
 NMEDIT = @NMEDIT@
 OBJDUMP = @OBJDUMP@
@@ -174,6 +183,7 @@ SSHD_FALSE = @SSHD_FALSE@
 SSHD_TRUE = @SSHD_TRUE@
 STRIP = @STRIP@
 VERSION = @VERSION@
+ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
 am__fastdepCC_FALSE = @am__fastdepCC_FALSE@
@@ -207,7 +217,6 @@ libdir = @libdir@
 libexecdir = @libexecdir@
 localedir = @localedir@
 localstatedir = @localstatedir@
-lt_ECHO = @lt_ECHO@
 mandir = @mandir@
 mkdir_p = @mkdir_p@
 oldincludedir = @oldincludedir@
@@ -220,7 +229,7 @@ sharedstatedir = @sharedstatedir@
 sysconfdir = @sysconfdir@
 target_alias = @target_alias@
 AUTOMAKE_OPTIONS = foreign nostdinc
-SUBDIRS = src example tests docs
+SUBDIRS = src tests docs $(am__append_1)
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libssh2.pc
 include_HEADERS = \
@@ -237,20 +246,27 @@ NETWAREFILES = nw/keepscreen.c \
 DSP = win32/libssh2.dsp
 VCPROJ = win32/libssh2.vcproj
 DISTCLEANFILES = $(DSP) ChangeLog
-WIN32FILES = win32/Makefile.win32 win32/libssh2.dsw     \
-win32/config.mk win32/Makefile win32/test/Makefile.win32 \
-win32/libssh2_config.h win32/tests.dsp win32/rules.mk $(DSP) \
-win32/msvcproj.head win32/msvcproj.foot
+VMSFILES = vms/libssh2_make_example.dcl vms/libssh2_make_help.dcl	\
+vms/libssh2_make_kit.dcl vms/libssh2_make_lib.dcl vms/man2help.c	\
+vms/readme.vms vms/libssh2_config.h
+
+WIN32FILES = win32/GNUmakefile win32/test/GNUmakefile		\
+win32/libssh2_config.h win32/config.mk win32/rules.mk		\
+win32/Makefile.Watcom win32/libssh2.dsw win32/tests.dsp $(DSP)	\
+win32/msvcproj.head win32/msvcproj.foot win32/libssh2.rc
 
 EXTRA_DIST = $(WIN32FILES) buildconf $(NETWAREFILES) get_ver.awk HACKING \
- maketgz NMakefile TODO RELEASE-NOTES libssh2.pc.in
+ maketgz NMakefile TODO RELEASE-NOTES libssh2.pc.in $(VMSFILES)
 
 ACLOCAL_AMFLAGS = -I m4
 CSOURCES = channel.c comp.c crypt.c hostkey.c kex.c mac.c misc.c \
  packet.c publickey.c scp.c session.c sftp.c userauth.c transport.c \
- version.c knownhost.c openssl.c libgcrypt.c pem.c
+ version.c knownhost.c agent.c openssl.c libgcrypt.c pem.c keepalive.c \
+ global.c
 
-HHEADERS = libssh2_priv.h openssl.h libgcrypt.h transport.h channel.h comp.h mac.h misc.h
+HHEADERS = libssh2_priv.h openssl.h libgcrypt.h transport.h channel.h \
+ comp.h mac.h misc.h packet.h userauth.h session.h sftp.h crypto.h
+
 
 # DSP/VCPROJ generation adapted from libcurl
 # Makefile.inc provides the CSOURCES and HHEADERS defines
@@ -474,7 +490,7 @@ distclean-tags:
 distdir: $(DISTFILES)
 	$(am__remove_distdir)
 	mkdir $(distdir)
-	$(mkdir_p) $(distdir)/. $(distdir)/include $(distdir)/m4 $(distdir)/nw $(distdir)/nw/test $(distdir)/win32 $(distdir)/win32/test
+	$(mkdir_p) $(distdir)/. $(distdir)/include $(distdir)/m4 $(distdir)/nw $(distdir)/nw/test $(distdir)/vms $(distdir)/win32 $(distdir)/win32/test
 	@srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`; \
 	topsrcdirstrip=`echo "$(top_srcdir)" | sed 's|.|.|g'`; \
 	list='$(DISTFILES)'; for file in $$list; do \
@@ -519,7 +535,8 @@ distdir: $(DISTFILES)
 	$(MAKE) $(AM_MAKEFLAGS) \
 	  top_distdir="$(top_distdir)" distdir="$(distdir)" \
 	  dist-hook
-	-find $(distdir) -type d ! -perm -777 -exec chmod a+rwx {} \; -o \
+	-find "$(distdir)" -type d ! -perm -755 \
+		-exec chmod u+rwx,go+rx {} \; -o \
 	  ! -type d ! -perm -444 -links 1 -exec chmod a+r {} \; -o \
 	  ! -type d ! -perm -400 -exec chmod a+r {} \; -o \
 	  ! -type d ! -perm -444 -exec $(SHELL) $(install_sh) -c -m a+r {} {} \; \

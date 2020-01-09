@@ -1,0 +1,26 @@
+From 7ccda9c550c474d9b9856c752acc6d6358c36721 Mon Sep 17 00:00:00 2001
+From: Kamil Dudka <kdudka@redhat.com>
+Date: Fri, 20 Jul 2012 14:59:54 +0200
+Subject: [PATCH] libssh2-1.4.2-tests-mansyntax
+
+Avoid printing the man's help to console with old version of man.
+---
+ tests/mansyntax.sh |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/tests/mansyntax.sh b/tests/mansyntax.sh
+index 3e72c25..fe587b8 100755
+--- a/tests/mansyntax.sh
++++ b/tests/mansyntax.sh
+@@ -12,7 +12,7 @@ mandir=${srcdir}/../docs
+ #
+ # Only test if suitable man is available
+ #
+-if ! man --help | grep -q warnings; then
++if ! man --help 2>/dev/null | grep -q warnings; then
+   exit 77
+ fi
+ 
+-- 
+1.7.1
+
