@@ -12,7 +12,7 @@
 
 Name:		libssh2
 Version:	1.4.3
-Release:	12%{?dist}.2
+Release:	12%{?dist}.3
 Summary:	A library implementing the SSH2 protocol
 Group:		System Environment/Libraries
 License:	BSD
@@ -41,6 +41,9 @@ Patch202:   0002-libssh2-1.8.0-CVE-2019-3856.patch
 
 # fix integer overflow in SSH packet processing channel resulting in out of bounds write (CVE-2019-3857)
 Patch203:   0003-libssh2-1.8.0-CVE-2019-3857.patch
+
+# fix out-of-bounds memory comparison with specially crafted message channel request (CVE-2019-3862)
+Patch208:   0008-libssh2-1.8.0-CVE-2019-3862.patch
 
 # fix integer overflow in keyboard interactive handling that allows out-of-bounds writes (CVE-2019-3863)
 Patch209:   0009-libssh2-1.8.0-CVE-2019-3863.patch
@@ -133,6 +136,7 @@ sed -i s/4711/47%{?__isa_bits}/ tests/ssh2.{c,sh}
 %patch201 -p1
 %patch202 -p1
 %patch203 -p1
+%patch208 -p1
 %patch209 -p1
 
 # scp: send valid commands for remote execution (#1489733)
@@ -207,6 +211,9 @@ rm -rf %{buildroot}
 %{_libdir}/pkgconfig/libssh2.pc
 
 %changelog
+* Mon May 27 2019 Kamil Dudka <kdudka@redhat.com> 1.4.3-12.el7_6.3
+- fix out-of-bounds memory comparison with specially crafted message channel request (CVE-2019-3862)
+
 * Wed Mar 20 2019 Kamil Dudka <kdudka@redhat.com> 1.4.3-12.el7_6.2
 - sanitize public header file (detected by rpmdiff)
 
