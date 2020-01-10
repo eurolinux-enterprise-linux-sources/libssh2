@@ -9,24 +9,26 @@
 
 # Edit the path below to point to the base of your Zlib sources.
 ifndef ZLIB_PATH
-ZLIB_PATH = ../../../zlib-1.2.8
+ZLIB_PATH = ../../../zlib-1.2.7
 endif
 
 # Edit the path below to point to the base of your OpenSSL package.
 ifndef OPENSSL_PATH
-OPENSSL_PATH = ../../../openssl-0.9.8zc
+OPENSSL_PATH = ../../../openssl-0.9.8x
 endif
 
-# Project root
-PROOT	= ../..
+# Edit the var below to set to your architecture or set environment var.
+ifndef ARCH
+ARCH = w32
+endif
 
 # Edit the var below to enable static linking of libssh2 and libz
 LINK_STATIC = 1
 
 # Edit the vars below to change target settings.
-SAMPLES	= $(PROOT)/example
+SAMPLES	= ../../example
 TARGETS := $(filter-out x11.exe,$(patsubst $(SAMPLES)/%.c,%.exe,$(strip $(wildcard $(SAMPLES)/*.c))))
-WWWURL	= https://www.libssh2.org/
+WWWURL	= http://www.libssh2.org/
 DESCR	= libssh2 $(subst .rc,,$(notdir $@)) $(LIBSSH2_VERSION_STR)
 #STACK	= 64000
 
@@ -84,24 +86,14 @@ else
 	CC = $(CROSSPREFIX)gcc
 endif
 
-# Set environment var ARCH to your architecture to override autodetection.
-ifndef ARCH
-ifeq ($(findstring gcc,$(CC)),gcc)
-ifeq ($(findstring x86_64,$(shell $(CC) -dumpmachine)),x86_64)
-ARCH	= w64
-else
-ARCH	= w32
-endif
-else
-ARCH	= w32
-endif
-endif
-
 # Include the version info retrieved from libssh2.h
 -include $(OBJDIR)/version.inc
 
 # Global flags for all compilers
 CFLAGS	= $(OPT) -D$(DB) -DLIBSSH2_WIN32 # -DHAVE_CONFIG_H
+ifeq ($(ARCH),w64)
+CFLAGS  += -D_AMD64_
+endif
 
 ifeq ($(CC),mwcc)
 LD	= mwld
@@ -126,21 +118,13 @@ ARFLAGS	= -cq
 LIBEXT	= a
 #LDLIBS	+= -lwsock32
 LDLIBS	+= -lws2_32
-RCFLAGS	= -I $(PROOT)/include -O coff
-CFLAGS	+= -fno-builtin
+RCFLAGS	= -O coff -i
 CFLAGS	+= -fno-strict-aliasing
 CFLAGS	+= -Wall #-Wno-unused #-pedantic
-ifeq ($(ARCH),w64)
-CFLAGS	+= -D_AMD64_
-RCFLAGS	+= -F pe-x86-64
-else
-CFLAGS	+= -m32
-RCFLAGS	+= -F pe-i386
-endif
 endif
 
-INCLUDES = -I$(PROOT)/win32 -I$(PROOT)/include
-LIBPATH += -L$(PROOT)/win32
+INCLUDES = -I.. -I../../include
+LIBPATH += -L..
 
 ifdef LINK_STATIC
 	LDLIBS += -llibssh2
@@ -148,11 +132,6 @@ else
 	LDLIBS += -llibssh2dll
 endif
 
-ifdef WITH_WINCNG
-# CFLAGS	+= -DLIBSSH2_WINCNG
-LDLIBS	+= -lbcrypt -lcrypt32
-else
-# CFLAGS	+= -DLIBSSH2_OPENSSL
 ifndef OPENSSL_INCLUDE
 	ifeq "$(wildcard $(OPENSSL_PATH)/outinc)" "$(OPENSSL_PATH)/outinc"
 		OPENSSL_INCLUDE = $(OPENSSL_PATH)/outinc
@@ -183,7 +162,6 @@ else
 	LDLIBS += $(patsubst %,$(OPENSSL_LIBPATH)/lib%.$(LIBEXT), $(OPENSSL_LIBS_DYN))
 endif
 endif
-endif
 
 ifdef WITH_ZLIB
 	CFLAGS += -DLIBSSH2_HAVE_ZLIB
@@ -197,7 +175,7 @@ endif
 
 CFLAGS	+= $(INCLUDES)
 
-vpath %.c $(PROOT)/example
+vpath %.c ../../example
 
 .PRECIOUS: $(OBJDIR)/%.o $(OBJDIR)/%.rc $(OBJDIR)/%.res
 
@@ -210,9 +188,9 @@ $(OBJDIR)/%.o: %.c
 #	@echo Compiling $<
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(OBJDIR)/version.inc: $(PROOT)/include/libssh2.h $(OBJDIR)
+$(OBJDIR)/version.inc: ../../include/libssh2.h $(OBJDIR)
 	@echo Creating $@
-	@$(AWK) -f $(PROOT)/get_ver.awk $< > $@
+	@$(AWK) -f ../../get_ver.awk $< > $@
 
 objclean:
 	$(call RMDIR, $(OBJDIR))
@@ -230,7 +208,7 @@ $(OBJDIR):
 
 $(OBJDIR)/%.res: $(OBJDIR)/%.rc
 	@echo Creating $@
-	@$(RC) $(RCFLAGS) -i $< -o $@
+	@$(RC) $(RCFLAGS) $< -o $@
 
 $(OBJDIR)/%.rc: GNUmakefile $(OBJDIR)/version.inc
 	@echo $(DL)1 VERSIONINFO$(DL) > $@

@@ -15,13 +15,10 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdio.h>
-#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
-#endif
-#ifdef HAVE_UNISTD_H
 #include <unistd.h>
-#endif
 #include <sys/types.h>
+
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
@@ -38,11 +35,11 @@ const char *password = "";
 const char *server_ip = "127.0.0.1";
 
 const char *remote_listenhost = "localhost"; /* resolved by the server */
-int remote_wantport = 2222;
-int remote_listenport;
+unsigned int remote_wantport = 2222;
+unsigned int remote_listenport;
 
 const char *local_destip = "127.0.0.1";
-int local_destport = 22;
+unsigned int local_destport = 22;
 
 enum {
     AUTH_NONE = 0,
@@ -52,7 +49,7 @@ enum {
 
 int main(int argc, char *argv[])
 {
-    int rc, i, auth = AUTH_NONE;
+    int rc, sock = -1, forwardsock = -1, i, auth = AUTH_NONE;
     struct sockaddr_in sin;
     socklen_t sinlen = sizeof(sin);
     const char *fingerprint;
@@ -60,23 +57,20 @@ int main(int argc, char *argv[])
     LIBSSH2_SESSION *session;
     LIBSSH2_LISTENER *listener = NULL;
     LIBSSH2_CHANNEL *channel = NULL;
+    const char *shost;
+    unsigned int sport;
     fd_set fds;
     struct timeval tv;
     ssize_t len, wr;
     char buf[16384];
 
 #ifdef WIN32
-    SOCKET sock = INVALID_SOCKET, forwardsock = INVALID_SOCKET;
+    char sockopt;
     WSADATA wsadata;
-    int err;
 
-    err = WSAStartup(MAKEWORD(2,0), &wsadata);
-    if (err != 0) {
-        fprintf(stderr, "WSAStartup failed with error: %d\n", err);
-        return 1;
-    }
+    WSAStartup(MAKEWORD(2,0), &wsadata);
 #else
-    int sock = -1, forwardsock = -1;
+    int sockopt;
 #endif
 
     if (argc > 1)
@@ -102,18 +96,6 @@ int main(int argc, char *argv[])
 
     /* Connect to SSH server */
     sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-#ifdef WIN32
-    if (sock == INVALID_SOCKET) {
-        fprintf(stderr, "failed to open socket!\n");
-        return -1;
-    }
-#else
-    if (sock == -1) {
-        perror("socket");
-        return -1;
-    }
-#endif
-
     sin.sin_family = AF_INET;
     if (INADDR_NONE == (sin.sin_addr.s_addr = inet_addr(server_ip))) {
         perror("inet_addr");
@@ -214,18 +196,6 @@ int main(int argc, char *argv[])
         "Accepted remote connection. Connecting to local server %s:%d\n",
         local_destip, local_destport);
     forwardsock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-#ifdef WIN32
-    if (forwardsock == INVALID_SOCKET) {
-        fprintf(stderr, "failed to open forward socket!\n");
-        goto shutdown;
-    }
-#else
-    if (forwardsock == -1) {
-        perror("socket");
-        goto shutdown;
-    }
-#endif
-
     sin.sin_family = AF_INET;
     sin.sin_port = htons(local_destport);
     if (INADDR_NONE == (sin.sin_addr.s_addr = inet_addr(local_destip))) {

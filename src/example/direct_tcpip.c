@@ -15,13 +15,10 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <stdio.h>
-#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
-#endif
-#ifdef HAVE_UNISTD_H
 #include <unistd.h>
-#endif
 #include <sys/types.h>
+
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
@@ -51,7 +48,7 @@ enum {
 
 int main(int argc, char *argv[])
 {
-    int rc, i, auth = AUTH_NONE;
+    int rc, sock = -1, listensock = -1, forwardsock = -1, i, auth = AUTH_NONE;
     struct sockaddr_in sin;
     socklen_t sinlen;
     const char *fingerprint;
@@ -67,19 +64,11 @@ int main(int argc, char *argv[])
 
 #ifdef WIN32
     char sockopt;
-    SOCKET sock = INVALID_SOCKET;
-    SOCKET listensock = INVALID_SOCKET, forwardsock = INVALID_SOCKET;
     WSADATA wsadata;
-    int err;
 
-    err = WSAStartup(MAKEWORD(2,0), &wsadata);
-    if (err != 0) {
-        fprintf(stderr, "WSAStartup failed with error: %d\n", err);
-        return 1;
-    }
+    WSAStartup(MAKEWORD(2,0), &wsadata);
 #else
-    int sockopt, sock = -1;
-    int listensock = -1, forwardsock = -1;
+    int sockopt;
 #endif
 
     if (argc > 1)
@@ -105,18 +94,6 @@ int main(int argc, char *argv[])
 
     /* Connect to SSH server */
     sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-#ifdef WIN32
-    if (sock == INVALID_SOCKET) {
-        fprintf(stderr, "failed to open socket!\n");
-        return -1;
-    }
-#else
-    if (sock == -1) {
-        perror("socket");
-        return -1;
-    }
-#endif
-
     sin.sin_family = AF_INET;
     if (INADDR_NONE == (sin.sin_addr.s_addr = inet_addr(server_ip))) {
         perror("inet_addr");
@@ -190,18 +167,6 @@ int main(int argc, char *argv[])
     }
 
     listensock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-#ifdef WIN32
-    if (listensock == INVALID_SOCKET) {
-        fprintf(stderr, "failed to open listen socket!\n");
-        return -1;
-    }
-#else
-    if (listensock == -1) {
-        perror("socket");
-        return -1;
-    }
-#endif
-
     sin.sin_family = AF_INET;
     sin.sin_port = htons(local_listenport);
     if (INADDR_NONE == (sin.sin_addr.s_addr = inet_addr(local_listenip))) {
@@ -224,17 +189,10 @@ int main(int argc, char *argv[])
         inet_ntoa(sin.sin_addr), ntohs(sin.sin_port));
 
     forwardsock = accept(listensock, (struct sockaddr *)&sin, &sinlen);
-#ifdef WIN32
-    if (forwardsock == INVALID_SOCKET) {
-        fprintf(stderr, "failed to accept forward socket!\n");
-        goto shutdown;
-    }
-#else
-    if (forwardsock == -1) {
+    if (-1 == forwardsock) {
         perror("accept");
         goto shutdown;
     }
-#endif
 
     shost = inet_ntoa(sin.sin_addr);
     sport = ntohs(sin.sin_port);
@@ -275,17 +233,14 @@ int main(int argc, char *argv[])
                 goto shutdown;
             }
             wr = 0;
-            while(wr < len) {
-                i = libssh2_channel_write(channel, buf + wr, len - wr);
-                if (LIBSSH2_ERROR_EAGAIN == i) {
-                    continue;
-                }
+            do {
+                i = libssh2_channel_write(channel, buf, len);
                 if (i < 0) {
                     fprintf(stderr, "libssh2_channel_write: %d\n", i);
                     goto shutdown;
                 }
                 wr += i;
-            }
+            } while(i > 0 && wr < len);
         }
         while (1) {
             len = libssh2_channel_read(channel, buf, sizeof(buf));

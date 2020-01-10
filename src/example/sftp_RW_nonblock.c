@@ -93,13 +93,8 @@ int main(int argc, char *argv[])
 
 #ifdef WIN32
     WSADATA wsadata;
-    int err;
 
-    err = WSAStartup(MAKEWORD(2,0), &wsadata);
-    if (err != 0) {
-        fprintf(stderr, "WSAStartup failed with error: %d\n", err);
-        return 1;
-    }
+    WSAStartup(MAKEWORD(2,0), &wsadata);
 #endif
 
     rc = libssh2_init (0);

@@ -14,7 +14,6 @@ typedef unsigned int socklen_t; /* missing in headers on VMS */
 /* Have's */
 
 #define HAVE_UNISTD_H
-#define HAVE_STDLIB_H
 #define HAVE_INTTYPES_H
 #define HAVE_SYS_TIME_H
 #define HAVE_SELECT
@@ -23,8 +22,6 @@ typedef unsigned int socklen_t; /* missing in headers on VMS */
 #define HAVE_SYS_SOCKET.H
 #define HAVE_NETINET_IN_H
 #define HAVE_ARPA_INET_H
-
-#define HAVE_GETTIMEOFDAY 1
 
 #define POSIX_C_SOURCE
 
@@ -71,11 +68,8 @@ typedef unsigned int socklen_t; /* missing in headers on VMS */
 
 #endif
 
-/* Use OpenSSL */
-#define LIBSSH2_OPENSSL 1
-
 /* Compile in zlib support. We link against gnv$libzshr, as available
- * from https://sourceforge.net/projects/vms-ports/files/.
+ * on encompasserve.com.
  */
 
 #define LIBSSH2_HAVE_ZLIB

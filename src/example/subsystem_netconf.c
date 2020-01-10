@@ -16,25 +16,16 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#ifdef HAVE_STDLIB_H
 #include <stdlib.h>
-#endif
-#ifdef HAVE_UNISTD_H
 #include <unistd.h>
-#endif
 #include <sys/types.h>
+
 #ifdef HAVE_SYS_SELECT_H
 #include <sys/select.h>
 #endif
 
 #ifndef INADDR_NONE
 #define INADDR_NONE (in_addr_t)~0
-#endif
-
-#ifndef HAVE_SNPRINTF
-# ifdef HAVE__SNPRINTF
-# define snprintf _snprintf
-# endif
 #endif
 
 const char *keyfile1 = "/home/username/.ssh/id_rsa.pub";
@@ -111,7 +102,7 @@ static int netconf_read_until(LIBSSH2_CHANNEL *channel, const char *endtag,
 
 int main(int argc, char *argv[])
 {
-    int rc, i, auth = AUTH_NONE;
+    int rc, sock = -1, i, auth = AUTH_NONE;
     struct sockaddr_in sin;
     const char *fingerprint;
     char *userauthlist;
@@ -121,17 +112,9 @@ int main(int argc, char *argv[])
     ssize_t len;
 
 #ifdef WIN32
-    SOCKET sock = INVALID_SOCKET;
     WSADATA wsadata;
-    int err;
 
-    err = WSAStartup(MAKEWORD(2,0), &wsadata);
-    if (err != 0) {
-        fprintf(stderr, "WSAStartup failed with error: %d\n", err);
-        return 1;
-    }
-#else
-    int sock = -1;
+    WSAStartup(MAKEWORD(2,0), &wsadata);
 #endif
 
     if (argc > 1)
@@ -149,18 +132,6 @@ int main(int argc, char *argv[])
 
     /* Connect to SSH server */
     sock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
-#ifdef WIN32
-    if (sock == INVALID_SOCKET) {
-        fprintf(stderr, "failed to open socket!\n");
-        return -1;
-    }
-#else
-    if (sock == -1) {
-        perror("socket");
-        return -1;
-    }
-#endif
-
     sin.sin_family = AF_INET;
     if (INADDR_NONE == (sin.sin_addr.s_addr = inet_addr(server_ip))) {
         fprintf(stderr, "inet_addr: Invalid IP address \"%s\"\n", server_ip);
@@ -250,7 +221,7 @@ int main(int argc, char *argv[])
         goto shutdown;
     }
 
-    /* NETCONF: https://tools.ietf.org/html/draft-ietf-netconf-ssh-06 */
+    /* NETCONF: http://tools.ietf.org/html/draft-ietf-netconf-ssh-06 */
 
     fprintf(stderr, "Sending NETCONF client <hello>\n");
     snprintf(buf, sizeof(buf),

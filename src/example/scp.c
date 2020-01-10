@@ -41,19 +41,14 @@ int main(int argc, char *argv[])
     const char *username="username";
     const char *password="password";
     const char *scppath="/tmp/TEST";
-    libssh2_struct_stat fileinfo;
+    struct stat fileinfo;
     int rc;
-    libssh2_struct_stat_size got = 0;
+    off_t got=0;
 
 #ifdef WIN32
     WSADATA wsadata;
-    int err;
 
-    err = WSAStartup(MAKEWORD(2,0), &wsadata);
-    if (err != 0) {
-        fprintf(stderr, "WSAStartup failed with error: %d\n", err);
-        return 1;
-    }
+    WSAStartup(MAKEWORD(2,0), &wsadata);
 #endif
 
     if (argc > 1) {
@@ -137,7 +132,7 @@ int main(int argc, char *argv[])
     }
 
     /* Request a file via SCP */
-    channel = libssh2_scp_recv2(session, scppath, &fileinfo);
+    channel = libssh2_scp_recv(session, scppath, &fileinfo);
 
     if (!channel) {
         fprintf(stderr, "Unable to open a session: %d\n",
@@ -151,7 +146,7 @@ int main(int argc, char *argv[])
         int amount=sizeof(mem);
 
         if((fileinfo.st_size -got) < amount) {
-            amount = (int)(fileinfo.st_size -got);
+            amount = fileinfo.st_size -got;
         }
 
         rc = libssh2_channel_read(channel, mem, amount);
