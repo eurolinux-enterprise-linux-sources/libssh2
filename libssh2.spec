@@ -1,58 +1,43 @@
-# Fedora 10 onwards support noarch subpackages; by using one, we can
-# put the arch-independent docs in a common subpackage and save lots
-# of space on the mirrors
-%if 0%{?fedora} > 9 || 0%{?rhel} > 5
-%global noarch_docs_package 1
-%else
-%global noarch_docs_package 0
-%endif
-
-# Define %%{__isa_bits} for old releases
-%{!?__isa_bits: %global __isa_bits %((echo '#include <bits/wordsize.h>'; echo __WORDSIZE) | cpp - | grep -Ex '32|64')}
-
 Name:		libssh2
-Version:	1.4.3
-Release:	12%{?dist}.3
+Version:	1.8.0
+Release:	3%{?dist}
 Summary:	A library implementing the SSH2 protocol
 Group:		System Environment/Libraries
 License:	BSD
 URL:		http://www.libssh2.org/
 Source0:	http://libssh2.org/download/libssh2-%{version}.tar.gz
-Patch0:		libssh2-1.4.2-utf8.patch
-Patch1:		0001-sftp-seek-Don-t-flush-buffers-on-same-offset.patch
-Patch2:		0002-sftp-statvfs-Along-error-path-reset-the-correct-stat.patch
-Patch3:		0003-sftp-Add-support-for-fsync-OpenSSH-extension.patch
-Patch4:		0004-partially-revert-window_size-explicit-adjustments-on.patch
-Patch5:		0005-channel.c-fix-a-use-after-free.patch
-Patch6:		0006-_libssh2_channel_write-client-spins-on-write-when-wi.patch
-Patch7:		0007-window_size-redid-window-handling-for-flow-control-r.patch
-Patch8:		0008-_libssh2_channel_read-fix-data-drop-when-out-of-wind.patch
-Patch9:		0009-_libssh2_channel_read-Honour-window_size_initial.patch
-Patch10:	0010-Set-default-window-size-to-2MB.patch
-Patch11:	0011-channel_receive_window_adjust-store-windows-size-alw.patch
-Patch12:	0012-libssh2_agent_init-init-fd-to-LIBSSH2_INVALID_SOCKET.patch
-Patch13:	0013-kex-bail-out-on-rubbish-in-the-incoming-packet.patch
 
 # fix integer overflow in transport read resulting in out of bounds write (CVE-2019-3855)
-Patch201:   0001-libssh2-1.8.0-CVE-2019-3855.patch
+Patch1:     0001-libssh2-1.8.0-CVE-2019-3855.patch
 
 # fix integer overflow in keyboard interactive handling resulting in out of bounds write (CVE-2019-3856)
-Patch202:   0002-libssh2-1.8.0-CVE-2019-3856.patch
+Patch2:     0002-libssh2-1.8.0-CVE-2019-3856.patch
 
 # fix integer overflow in SSH packet processing channel resulting in out of bounds write (CVE-2019-3857)
-Patch203:   0003-libssh2-1.8.0-CVE-2019-3857.patch
+Patch3:     0003-libssh2-1.8.0-CVE-2019-3857.patch
+
+# fix zero-byte allocation in SFTP packet processing resulting in out-of-bounds read (CVE-2019-3858)
+Patch4:     0004-libssh2-1.8.0-CVE-2019-3858.patch
+
+# fix out-of-bounds reads with specially crafted SSH packets (CVE-2019-3861)
+Patch7:     0007-libssh2-1.8.0-CVE-2019-3861.patch
 
 # fix out-of-bounds memory comparison with specially crafted message channel request (CVE-2019-3862)
-Patch208:   0008-libssh2-1.8.0-CVE-2019-3862.patch
+Patch8:     0008-libssh2-1.8.0-CVE-2019-3862.patch
 
 # fix integer overflow in keyboard interactive handling that allows out-of-bounds writes (CVE-2019-3863)
-Patch209:   0009-libssh2-1.8.0-CVE-2019-3863.patch
+Patch9:     0009-libssh2-1.8.0-CVE-2019-3863.patch
 
 Patch14:	0014-libssh2-1.4.3-scp-remote-exec.patch
 Patch15:	0015-libssh2-1.4.3-debug-msgs.patch
-Patch101:	0101-libssh2-1.4.3-CVE-2016-0787.patch
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(id -nu)
+
+BuildRequires:	coreutils
+BuildRequires:	findutils
+BuildRequires:	gcc
+BuildRequires:	make
 BuildRequires:	openssl-devel
+BuildRequires:	sed
 BuildRequires:	zlib-devel
 BuildRequires:	/usr/bin/man
 
@@ -60,10 +45,10 @@ BuildRequires:	/usr/bin/man
 BuildRequires:	openssh-server
 # We use matchpathcon to get the correct SELinux context for the ssh server
 # initialization script so that it can transition correctly in an SELinux
-# environment; matchpathcon is only available from FC-4 and moved from the
-# libselinux to libselinux-utils package in F-10
-%if (0%{?fedora} >= 4 || 0%{?rhel} >= 5) && !(0%{?fedora} >=17 || 0%{?rhel} >=7)
-BuildRequires:	/usr/sbin/matchpathcon selinux-policy-targeted
+# environment
+%if !(0%{?fedora} >= 17 || 0%{?rhel} >= 7)
+BuildRequires:	libselinux-utils
+BuildRequires:	selinux-policy-targeted
 %endif
 
 %description
@@ -75,7 +60,7 @@ SECSH-DHGEX(04), and SECSH-NUMBERS(10).
 %package	devel
 Summary:	Development files for libssh2
 Group:		Development/Libraries
-Requires:	%{name} = %{version}-%{release}
+Requires:	%{name}%{?_isa} = %{version}-%{release}
 Requires:	pkgconfig
 
 %description	devel
@@ -86,9 +71,7 @@ developing applications that use libssh2.
 Summary:	Documentation for libssh2
 Group:		Development/Libraries
 Requires:	%{name} = %{version}-%{release}
-%if %{noarch_docs_package}
 BuildArch:	noarch
-%endif
 
 %description	docs
 The libssh2-docs package contains man pages and examples for
@@ -96,48 +79,17 @@ developing applications that use libssh2.
 
 %prep
 %setup -q
-
-# Replace hard wired port number in the test suite to avoid collisions
-# between 32-bit and 64-bit builds running on a single build-host
-sed -i s/4711/47%{?__isa_bits}/ tests/ssh2.{c,sh}
-
-# Make sure things are UTF-8...
-%patch0 -p1
-
-# Three upstream patches required for qemu ssh block driver.
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
-
-# http://thread.gmane.org/gmane.network.ssh.libssh2.devel/6428
 %patch4 -p1
-
-# https://trac.libssh2.org/ticket/268
-%patch5 -p1
-
-# Resolves: #1080459 - curl consumes too much memory during scp download
-%patch6 -p1
 %patch7 -p1
 %patch8 -p1
 %patch9 -p1
-%patch10 -p1
-%patch11 -p1
 
-# prevent a not-connected agent from closing STDIN (#1147717)
-%patch12 -p1
-
-# check length of data extracted from the SSH_MSG_KEXINIT packet (CVE-2015-1782)
-%patch13 -p1
-
-# use secrects of the appropriate length in Diffie-Hellman (CVE-2016-0787)
-%patch101 -p1
-
-# rhel-7.6.z patches
-%patch201 -p1
-%patch202 -p1
-%patch203 -p1
-%patch208 -p1
-%patch209 -p1
+# Replace hard wired port number in the test suite to avoid collisions
+# between 32-bit and 64-bit builds running on a single build-host
+sed -i s/4711/47%{__isa_bits}/ tests/ssh2.{c,sh}
 
 # scp: send valid commands for remote execution (#1489733)
 %patch14 -p1
@@ -153,7 +105,7 @@ chcon $(/usr/sbin/matchpathcon -n /etc/ssh/ssh_host_key) tests/etc/{host,user} |
 %endif
 
 %build
-%configure --disable-static --enable-shared
+%configure --disable-silent-rules --disable-static --enable-shared
 make %{?_smp_mflags}
 
 # Avoid polluting libssh2.pc with linker options (#947813)
@@ -162,17 +114,18 @@ sed -i -e 's|[[:space:]]-Wl,[^[:space:]]*||' libssh2.pc
 %install
 rm -rf %{buildroot}
 make install DESTDIR=%{buildroot} INSTALL="install -p"
-find %{buildroot} -name '*.la' -exec rm -f {} \;
+find %{buildroot} -name '*.la' -delete
 
 # clean things up a bit for packaging
 make -C example clean
 rm -rf example/.deps
-find example/ -type f '(' -name '*.am' -o -name '*.in' ')' -exec rm -v {} \;
+find example/ -type f '(' -name '*.am' -o -name '*.in' ')' -delete
 
 # avoid multilib conflict on libssh2-devel
 mv -v example example.%{_arch}
 
 %check
+echo "Running tests for %{_arch}"
 # The SSH test will fail if we don't have /dev/tty, as is the case in some
 # versions of mock (#672713)
 if [ ! -c /dev/tty ]; then
@@ -184,6 +137,11 @@ fi
 echo Skipping SSH test on sparc/arm
 echo "exit 0" > tests/ssh2.sh
 %endif
+# mansyntax check fails on PPC* and aarch64 with some strange locale error
+%ifarch ppc %{power64} aarch64
+echo "Skipping mansyntax test on PPC* and aarch64"
+echo "exit 0" > tests/mansyntax.sh
+%endif
 make -C tests check
 
 %clean
@@ -194,12 +152,12 @@ rm -rf %{buildroot}
 %postun -p /sbin/ldconfig
 
 %files
-%doc AUTHORS ChangeLog COPYING README NEWS
+%doc COPYING docs/AUTHORS README RELEASE-NOTES
 %{_libdir}/libssh2.so.1
 %{_libdir}/libssh2.so.1.*
 
 %files docs
-%doc HACKING
+%doc docs/BINDINGS docs/HACKING docs/TODO NEWS
 %{_mandir}/man3/libssh2_*.3*
 
 %files devel
@@ -211,17 +169,20 @@ rm -rf %{buildroot}
 %{_libdir}/pkgconfig/libssh2.pc
 
 %changelog
-* Mon May 27 2019 Kamil Dudka <kdudka@redhat.com> 1.4.3-12.el7_6.3
-- fix out-of-bounds memory comparison with specially crafted message channel request (CVE-2019-3862)
-
-* Wed Mar 20 2019 Kamil Dudka <kdudka@redhat.com> 1.4.3-12.el7_6.2
+* Wed Mar 20 2019 Kamil Dudka <kdudka@redhat.com> 1.8.0-3
 - sanitize public header file (detected by rpmdiff)
 
-* Tue Mar 19 2019 Kamil Dudka <kdudka@redhat.com> 1.4.3-12.el7_6.1
+* Tue Mar 19 2019 Kamil Dudka <kdudka@redhat.com> 1.8.0-2
 - fix integer overflow in keyboard interactive handling that allows out-of-bounds writes (CVE-2019-3863)
+- fix out-of-bounds memory comparison with specially crafted message channel request (CVE-2019-3862)
+- fix out-of-bounds reads with specially crafted SSH packets (CVE-2019-3861)
+- fix zero-byte allocation in SFTP packet processing resulting in out-of-bounds read (CVE-2019-3858)
 - fix integer overflow in SSH packet processing channel resulting in out of bounds write (CVE-2019-3857)
 - fix integer overflow in keyboard interactive handling resulting in out of bounds write (CVE-2019-3856)
 - fix integer overflow in transport read resulting in out of bounds write (CVE-2019-3855)
+
+* Wed Nov 21 2018 Kamil Dudka <kdudka@redhat.com> 1.8.0-1
+- rebase to 1.8.0 (#1592784)
 
 * Tue Sep 26 2017 Kamil Dudka <kdudka@redhat.com> 1.4.3-12
 - session: avoid printing misleading debug messages (#1503294)

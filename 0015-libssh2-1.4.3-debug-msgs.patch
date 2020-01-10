@@ -21,7 +21,7 @@ diff --git a/src/session.c b/src/session.c
 index 9838d2b..62ef70d 100644
 --- a/src/session.c
 +++ b/src/session.c
-@@ -695,7 +695,9 @@ session_startup(LIBSSH2_SESSION *session, libssh2_socket_t sock)
+@@ -703,7 +703,9 @@ session_startup(LIBSSH2_SESSION *session, libssh2_socket_t sock)
  
      if (session->startup_state == libssh2_NB_state_created) {
          rc = banner_send(session);
@@ -32,7 +32,7 @@ index 9838d2b..62ef70d 100644
              return _libssh2_error(session, rc,
                                    "Failed sending banner");
          }
-@@ -706,7 +708,9 @@ session_startup(LIBSSH2_SESSION *session, libssh2_socket_t sock)
+@@ -714,7 +716,9 @@ session_startup(LIBSSH2_SESSION *session, libssh2_socket_t sock)
      if (session->startup_state == libssh2_NB_state_sent) {
          do {
              rc = banner_receive(session);
@@ -43,7 +43,7 @@ index 9838d2b..62ef70d 100644
                  return _libssh2_error(session, rc,
                                        "Failed getting banner");
          } while(strncmp("SSH-", (char *)session->remote.banner, 4));
-@@ -716,7 +720,9 @@ session_startup(LIBSSH2_SESSION *session, libssh2_socket_t sock)
+@@ -724,7 +728,9 @@ session_startup(LIBSSH2_SESSION *session, libssh2_socket_t sock)
  
      if (session->startup_state == libssh2_NB_state_sent1) {
          rc = _libssh2_kex_exchange(session, 0, &session->startup_key_state);
@@ -54,7 +54,7 @@ index 9838d2b..62ef70d 100644
              return _libssh2_error(session, rc,
                                    "Unable to exchange encryption keys");
  
-@@ -741,7 +747,9 @@ session_startup(LIBSSH2_SESSION *session, libssh2_socket_t sock)
+@@ -749,7 +755,9 @@ session_startup(LIBSSH2_SESSION *session, libssh2_socket_t sock)
          rc = _libssh2_transport_send(session, session->startup_service,
                                       sizeof("ssh-userauth") + 5 - 1,
                                       NULL, 0);
