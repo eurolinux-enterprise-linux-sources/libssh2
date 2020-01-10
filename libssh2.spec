@@ -12,7 +12,7 @@
 
 Name:		libssh2
 Version:	1.4.3
-Release:	10%{?dist}.1
+Release:	12%{?dist}
 Summary:	A library implementing the SSH2 protocol
 Group:		System Environment/Libraries
 License:	BSD
@@ -32,6 +32,8 @@ Patch10:	0010-Set-default-window-size-to-2MB.patch
 Patch11:	0011-channel_receive_window_adjust-store-windows-size-alw.patch
 Patch12:	0012-libssh2_agent_init-init-fd-to-LIBSSH2_INVALID_SOCKET.patch
 Patch13:	0013-kex-bail-out-on-rubbish-in-the-incoming-packet.patch
+Patch14:	0014-libssh2-1.4.3-scp-remote-exec.patch
+Patch15:	0015-libssh2-1.4.3-debug-msgs.patch
 Patch101:	0101-libssh2-1.4.3-CVE-2016-0787.patch
 BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(id -nu)
 BuildRequires:	openssl-devel
@@ -114,6 +116,12 @@ sed -i s/4711/47%{?__isa_bits}/ tests/ssh2.{c,sh}
 # use secrects of the appropriate length in Diffie-Hellman (CVE-2016-0787)
 %patch101 -p1
 
+# scp: send valid commands for remote execution (#1489733)
+%patch14 -p1
+
+# session: avoid printing misleading debug messages (#1503294)
+%patch15 -p1
+
 # Make sshd transition appropriately if building in an SELinux environment
 %if !(0%{?fedora} >= 17 || 0%{?rhel} >= 7)
 chcon $(/usr/sbin/matchpathcon -n /etc/rc.d/init.d/sshd) tests/ssh2.sh || :
@@ -180,7 +188,11 @@ rm -rf %{buildroot}
 %{_libdir}/pkgconfig/libssh2.pc
 
 %changelog
-* Fri Feb 19 2016 Kamil Dudka <kdudka@redhat.com> 1.4.3-10.el7_2.1
+* Tue Sep 26 2017 Kamil Dudka <kdudka@redhat.com> 1.4.3-12
+- session: avoid printing misleading debug messages (#1503294)
+- scp: send valid commands for remote execution (#1489733)
+
+* Fri Feb 19 2016 Kamil Dudka <kdudka@redhat.com> 1.4.3-11
 - use secrects of the appropriate length in Diffie-Hellman (CVE-2016-0787)
 
 * Mon Jun 01 2015 Kamil Dudka <kdudka@redhat.com> 1.4.3-10
